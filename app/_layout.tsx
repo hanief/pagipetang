@@ -1,37 +1,54 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+import { Stack } from "expo-router";
+import { TouchableOpacity, Text, View, StyleSheet } from "react-native";
+import { useNavigation } from "expo-router";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  return (
+    <View style={styles.container}>
+      <View style={styles.phoneWidthContainer}>
+        <Stack>
+          <Stack.Screen 
+            name="index" 
+            options={{
+              title: "Pagi Petang",
+            }}
+          />
+        </Stack>
+      </View>
+    </View>
+  )
+}
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  phoneWidthContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 450, // Standard phone width
+  },
+});
 
-  if (!loaded) {
-    return null;
-  }
+function DisplayModeButton() {
+  const navigation = useNavigation();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <TouchableOpacity 
+      style={{
+        backgroundColor: '#4CAF50',
+        padding: 8,
+        borderRadius: 6,
+        marginRight: 8,
+      }}
+      onPress={() => {
+        // @ts-ignore
+        navigation.getParent()?.setParams({ toggleMode: Date.now() });
+      }}
+    >
+      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Switch</Text>
+    </TouchableOpacity>
   );
 }
