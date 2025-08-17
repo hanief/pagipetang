@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "pagipetang",
+    "name": "Pagi Petang",
     "slug": "pagipetang",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#fffffff"
     },
     "ios": {
       "supportsTablet": true,
@@ -34,9 +34,28 @@
         "expo-font",
         {
           "fonts": [
-            "assets/fonts/Digital Khatt V2 Font.otf",
-            "assets/fonts/LPMQ IsepMisbah 2.ttf"
-          ]
+            "./assets/fonts/Digital Khatt V2 Font.otf",
+            "./assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf"
+          ],
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Arabic",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf",
+                    "weight": 700
+                  }
+                ]
+              }
+            ]
+          },
+          "ios": {
+            "fonts": [
+              "./assets/fonts/Digital Khatt V2 Font.otf",
+              "./assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf"
+            ]
+          }
         }
       ]
     ],
