@@ -5,12 +5,12 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "pagipetang",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#fffffff"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
@@ -34,8 +34,9 @@
         "expo-font",
         {
           "fonts": [
-            "./assets/fonts/Digital Khatt V2 Font.otf",
-            "./assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf"
+            "./assets/fonts/digitalkhatt.otf",
+            "./assets/fonts/madina.otf",
+            "./assets/fonts/uthmanic.otf"
           ],
           "android": {
             "fonts": [
@@ -43,7 +44,25 @@
                 "fontFamily": "Arabic",
                 "fontDefinitions": [
                   {
-                    "path": "./assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf",
+                    "path": "./assets/fonts/digitalkhatt.otf",
+                    "weight": 700
+                  }
+                ]
+              },
+              {
+                "fontFamily": "Arabic",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/madina.otf",
+                    "weight": 700
+                  }
+                ]
+              },
+              {
+                "fontFamily": "Arabic",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/uthmanic.otf",
                     "weight": 700
                   }
                 ]
@@ -52,8 +71,9 @@
           },
           "ios": {
             "fonts": [
-              "./assets/fonts/Digital Khatt V2 Font.otf",
-              "./assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf"
+              "./assets/fonts/digitalkhatt.otf",
+              "./assets/fonts/madina.otf",
+              "./assets/fonts/uthmanic.otf"
             ]
           }
         }

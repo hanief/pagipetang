@@ -8,6 +8,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useGlobalSearchParams } from 'expo-router';
 import { matsuratData } from '../data/matsurat';
+import { useFonts } from 'expo-font'
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 const DISPLAY_MODES = {
   ARABIC: 'arabic',
@@ -23,15 +27,25 @@ const Supplication = () => {
   const globalParams = useGlobalSearchParams();
 
   useEffect(() => {
-    console.log('params', params);
     if (params.toggleMode) {
       toggleDisplayMode();
     }
   }, [params]);
 
   useEffect(() => {
-    console.log('globalParams', globalParams);
   }, [globalParams]);
+
+  const [loaded, error] = useFonts({
+    'DigitalKhatt': require('../assets/fonts/digitalkhatt.otf'),
+    'Uthmanic': require('../assets/fonts/uthmanic-script.otf'),
+    'Madina': require('../assets/fonts/madina.otf'),
+  });
+
+  useEffect(() => {
+    if (loaded || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, error]);
 
   const handleNext = () => {
     if (counter < 2) {
@@ -75,10 +89,14 @@ const Supplication = () => {
 
   // Calculate overall progress
   const totalPrayers = matsuratData.length;
-  const stepsPerPrayer = 3; // Each prayer has 3 steps
+  const stepsPerPrayer = matsuratData.repeat;
   const totalSteps = totalPrayers * stepsPerPrayer;
   const currentStep = (currentIndex * stepsPerPrayer) + counter + 1;
   const progressPercentage = (currentStep / totalSteps) * 100;
+
+  if (!loaded && !error) {
+    return null;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -96,7 +114,8 @@ const Supplication = () => {
         <View style={styles.textContainer}>
           <Text style={[
             styles.text,
-            displayMode === DISPLAY_MODES.ARABIC && styles.arabicText
+            displayMode === DISPLAY_MODES.ARABIC && styles.arabicText,
+            { fontFamily: 'Uthmanic', fontSize: 30 }
           ]}>
             {matsuratData[currentIndex][displayMode]}
           </Text>
@@ -116,7 +135,6 @@ const Supplication = () => {
         <View style={styles.progressBarBackground}>
           <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
         </View>
-        <Text style={styles.progressText}>Prayer {currentIndex + 1}/{totalPrayers} - Step {counter + 1}/3</Text>
       </View>
 
       <View style={styles.buttonContainer}>
@@ -125,7 +143,7 @@ const Supplication = () => {
           onPress={handlePrevious}
           disabled={currentIndex === 0 && counter === 0}
         >
-          <Text style={styles.buttonText}>Previous</Text>
+          <Text style={styles.buttonText}>&lt;</Text>
         </TouchableOpacity>
 
         <View style={styles.counterContainer}>
@@ -137,7 +155,7 @@ const Supplication = () => {
           onPress={handleNext}
           disabled={currentIndex === matsuratData.length - 1 && counter === 2}
         >
-          <Text style={styles.buttonText}>Next</Text>
+          <Text style={styles.buttonText}>&gt;</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -194,7 +212,7 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     padding: 10,
     paddingHorizontal: 20,
-    marginBottom: 5,
+    marginBottom: 2,
     position: 'relative',
   },
   progressBarBackground: {
