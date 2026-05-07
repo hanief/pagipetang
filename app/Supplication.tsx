@@ -1,293 +1,369 @@
-/**
- * Supplication - Main prayer interface with beautiful Islamic design
- * Completely redesigned with fixed counter logic, proper progress tracking,
- * and Islamic aesthetic
- */
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
+  FlatList,
+  Dimensions,
+  Platform,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  Animated,
+  StatusBar,
+  ViewToken,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { matsuratData } from '../data/matsurat';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '@/constants/Colors';
-import { Spacing } from '@/constants/Spacing';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { PrayerCard } from '@/components/PrayerCard';
-import { ProgressIndicator } from '@/components/ProgressIndicator';
-import { NavigationControls } from '@/components/NavigationControls';
-import { SupplicationHeader } from '@/components/SupplicationHeader';
+import * as Haptics from 'expo-haptics';
 
 SplashScreen.preventAutoHideAsync();
 
-type DisplayMode = 'arabic' | 'translation' | 'transliteration';
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const DISPLAY_MODES: { [key: string]: DisplayMode } = {
-  ARABIC: 'arabic',
-  TRANSLATION: 'translation',
-  TRANSLITERATION: 'transliteration'
+type Slide = {
+  slideId: string;
+  prayerName: string;
+  arabic: string;
+  translation?: string;
+  transliteration?: string;
+  repeatIndex: number;
+  repeatTotal: number;
 };
 
-const Supplication = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [displayMode, setDisplayMode] = useState<DisplayMode>(DISPLAY_MODES.ARABIC);
-  const [counter, setCounter] = useState(0);
-  const [fadeAnim] = useState(new Animated.Value(1));
-
-  const params = useLocalSearchParams();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-
-  // Load Arabic fonts
-  const [loaded, error] = useFonts({
-    'DigitalKhatt': require('../assets/fonts/digitalkhatt.otf'),
-    'Uthmanic': require('../assets/fonts/uthmanic.otf'),
-    'Madina': require('../assets/fonts/madina.otf'),
+function buildSlides(): Slide[] {
+  const slides: Slide[] = [];
+  matsuratData.forEach((prayer, idx) => {
+    for (let i = 0; i < prayer.repeat; i++) {
+      slides.push({
+        slideId: `${idx}-${i}`,
+        prayerName: prayer.name,
+        arabic: prayer.arabic,
+        translation: prayer.translation,
+        transliteration: prayer.transliteration,
+        repeatIndex: i,
+        repeatTotal: prayer.repeat,
+      });
+    }
   });
+  return slides;
+}
 
-  useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded, error]);
+const SLIDES = buildSlides();
 
-  // Handle mode toggle from params
-  useEffect(() => {
-    if (params.toggleMode) {
-      toggleDisplayMode();
-    }
-  }, [params.toggleMode]);
+interface SlideProps {
+  slide: Slide;
+  slideIndex: number;
+  totalSlides: number;
+  insetsTop: number;
+  insetsBottom: number;
+}
 
-  // Get current prayer data
-  const currentPrayer = matsuratData[currentIndex];
-  const maxCounter = currentPrayer?.repeat || 1;
-
-  // Calculate overall progress with proper logic
-  const { totalSteps, currentStep, progressPercentage } = useMemo(() => {
-    const total = matsuratData.reduce((acc, prayer) => acc + prayer.repeat, 0);
-    const current = matsuratData
-      .slice(0, currentIndex)
-      .reduce((acc, prayer) => acc + prayer.repeat, 0) + counter + 1;
-    const percentage = (current / total) * 100;
-
-    return {
-      totalSteps: total,
-      currentStep: current,
-      progressPercentage: Math.min(percentage, 100),
-    };
-  }, [currentIndex, counter]);
-
-  // Fade animation for content transitions
-  const animateTransition = (callback: () => void) => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0.3,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Execute callback in the middle of animation
-    setTimeout(callback, 150);
-  };
-
-  const handleNext = () => {
-    animateTransition(() => {
-      if (counter < maxCounter - 1) {
-        // Increase counter based on current prayer's repeat value
-        setCounter(counter + 1);
-      } else {
-        // When counter completes, go to next prayer and reset counter
-        if (currentIndex < matsuratData.length - 1) {
-          setCurrentIndex(currentIndex + 1);
-          setCounter(0);
-        }
-      }
-    });
-  };
-
-  const handlePrevious = () => {
-    animateTransition(() => {
-      if (counter > 0) {
-        // Decrease counter
-        setCounter(counter - 1);
-      } else {
-        // When counter is 0, go to previous prayer
-        if (currentIndex > 0) {
-          const prevIndex = currentIndex - 1;
-          const prevPrayer = matsuratData[prevIndex];
-          setCurrentIndex(prevIndex);
-          setCounter(prevPrayer.repeat - 1);
-        }
-      }
-    });
-  };
-
-  const toggleDisplayMode = () => {
-    switch (displayMode) {
-      case DISPLAY_MODES.ARABIC:
-        setDisplayMode(DISPLAY_MODES.TRANSLATION);
-        break;
-      case DISPLAY_MODES.TRANSLATION:
-        setDisplayMode(DISPLAY_MODES.TRANSLITERATION);
-        break;
-      case DISPLAY_MODES.TRANSLITERATION:
-        setDisplayMode(DISPLAY_MODES.ARABIC);
-        break;
-    }
-  };
-
-  // Check navigation bounds
-  const canGoPrevious = !(currentIndex === 0 && counter === 0);
-  const canGoNext = !(currentIndex === matsuratData.length - 1 && counter === maxCounter - 1);
-
-  // Side tap handlers
-  const handleLeftTap = () => {
-    if (canGoPrevious) handlePrevious();
-  };
-
-  const handleRightTap = () => {
-    if (canGoNext) handleNext();
-  };
-
-  if (!loaded && !error) {
-    return null;
-  }
-
+const SupplicationSlide = React.memo(function SupplicationSlide({
+  slide,
+  slideIndex,
+  totalSlides,
+  insetsTop,
+  insetsBottom,
+}: SlideProps) {
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Subtle background gradient */}
+    <View style={styles.slide}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      {/* Dark background */}
       <LinearGradient
-        colors={[colors.background, colors.surfaceVariant]}
+        colors={['#060A08', '#0E150C', '#060A08']}
         style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
       />
 
-      {/* Header with prayer name and mode toggle */}
-      <SupplicationHeader
-        prayerName={currentPrayer?.name || ''}
-        currentNumber={currentIndex + 1}
-        totalNumber={matsuratData.length}
-        displayMode={displayMode}
-        onToggleMode={toggleDisplayMode}
+      {/* Warm radial glow in the center */}
+      <LinearGradient
+        colors={['transparent', 'rgba(150, 100, 15, 0.14)', 'transparent']}
+        style={styles.centerGlow}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
       />
 
-      {/* Main content area */}
-      <View style={styles.contentContainer}>
-        {/* Left touchable area - Previous */}
-        <TouchableOpacity
-          style={styles.touchableLeft}
-          onPress={handleLeftTap}
-          disabled={!canGoPrevious}
-          activeOpacity={1}
-        >
-          <View style={styles.touchableOverlay} />
-        </TouchableOpacity>
-
-        {/* Prayer content with animation */}
-        <Animated.View style={[styles.cardContainer, { opacity: fadeAnim }]}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <PrayerCard
-              arabic={currentPrayer?.arabic || ''}
-              translation={currentPrayer?.translation}
-              transliteration={currentPrayer?.transliteration}
-              displayMode={displayMode}
-            />
-          </ScrollView>
-        </Animated.View>
-
-        {/* Right touchable area - Next */}
-        <TouchableOpacity
-          style={styles.touchableRight}
-          onPress={handleRightTap}
-          disabled={!canGoNext}
-          activeOpacity={1}
-        >
-          <View style={styles.touchableOverlay} />
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insetsTop + 16 }]}>
+        <View style={styles.headerSide} />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>MORNING ADHKAR</Text>
+          <Text style={styles.headerSubtitle}>{slideIndex + 1} of {totalSlides}</Text>
+        </View>
+        <TouchableOpacity style={[styles.headerSide, styles.headerSideRight]} activeOpacity={0.7}>
+          <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
       </View>
 
-      {/* Progress indicator */}
-      <ProgressIndicator
-        currentStep={currentStep}
-        totalSteps={totalSteps}
-        counter={counter}
-        maxCounter={maxCounter}
-      />
+      {/* Arabic text */}
+      <View style={styles.arabicContainer}>
+        <Text style={styles.arabicText}>{slide.arabic}</Text>
+        <Text style={styles.prayerNameLabel}>{slide.prayerName}</Text>
+      </View>
 
-      {/* Navigation controls */}
-      <NavigationControls
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-        canGoPrevious={canGoPrevious}
-        canGoNext={canGoNext}
-      />
-    </SafeAreaView>
+      {/* Bottom panel fade */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.75)', 'rgba(0,0,0,0.97)']}
+        style={[styles.bottomPanel, { paddingBottom: insetsBottom + 12 }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        pointerEvents="box-none"
+      >
+        {/* Transliteration section */}
+        {slide.transliteration ? (
+          <>
+            <Text style={styles.sectionLabel}>TRANSLITERATION</Text>
+            <Text style={styles.transliterationText} numberOfLines={3}>
+              {slide.transliteration}
+            </Text>
+          </>
+        ) : null}
+
+        {/* Translation */}
+        {slide.translation ? (
+          <Text style={styles.translationText} numberOfLines={3}>
+            {slide.translation}
+          </Text>
+        ) : null}
+
+        {/* Repeat indicator */}
+        {slide.repeatTotal > 1 && (
+          <View style={styles.repeatRow}>
+            {Array.from({ length: slide.repeatTotal }, (_, i) => (
+              <View
+                key={i}
+                style={[styles.dot, i === slide.repeatIndex && styles.dotActive]}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Swipe hint */}
+        {slideIndex < totalSlides - 1 && (
+          <View style={styles.nextHintRow}>
+            <Ionicons name="chevron-up" size={13} color="rgba(255,255,255,0.35)" />
+            <Text style={styles.nextHintText}>NEXT ADHKAR</Text>
+          </View>
+        )}
+      </LinearGradient>
+    </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  contentContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    position: 'relative',
-  },
-
-  touchableLeft: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: '30%', // Reduced from 50% for better UX
-    height: '100%',
-    zIndex: 2,
-  },
-
-  touchableRight: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    width: '30%', // Reduced from 50% for better UX
-    height: '100%',
-    zIndex: 2,
-  },
-
-  touchableOverlay: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'transparent',
-  },
-
-  cardContainer: {
-    flex: 1,
-    zIndex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: Spacing.lg,
-  },
 });
 
-export default Supplication;
+export default function Supplication() {
+  const insets = useSafeAreaInsets();
+
+  const [fontsLoaded, fontError] = useFonts({
+    DigitalKhatt: require('../assets/fonts/digitalkhatt.otf'),
+    Uthmanic: require('../assets/fonts/uthmanic.otf'),
+    Madina: require('../assets/fonts/madina.otf'),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
+
+  const onViewableItemsChangedRef = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      }
+    }
+  );
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: Slide; index: number }) => (
+      <SupplicationSlide
+        slide={item}
+        slideIndex={index}
+        totalSlides={SLIDES.length}
+        insetsTop={insets.top}
+        insetsBottom={insets.bottom}
+      />
+    ),
+    [insets.top, insets.bottom]
+  );
+
+  const getItemLayout = useCallback(
+    (_: ArrayLike<Slide> | null | undefined, index: number) => ({
+      length: SCREEN_HEIGHT,
+      offset: SCREEN_HEIGHT * index,
+      index,
+    }),
+    []
+  );
+
+  if (!fontsLoaded && !fontError) return null;
+
+  return (
+    <FlatList
+      data={SLIDES}
+      keyExtractor={item => item.slideId}
+      renderItem={renderItem}
+      pagingEnabled
+      showsVerticalScrollIndicator={false}
+      getItemLayout={getItemLayout}
+      onViewableItemsChanged={onViewableItemsChangedRef.current}
+      viewabilityConfig={viewabilityConfig.current}
+      scrollEventThrottle={16}
+      decelerationRate="fast"
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  slide: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+
+  centerGlow: {
+    position: 'absolute',
+    top: SCREEN_HEIGHT * 0.12,
+    left: 0,
+    right: 0,
+    height: SCREEN_HEIGHT * 0.55,
+  },
+
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
+
+  headerSide: {
+    width: 36,
+  },
+
+  headerSideRight: {
+    alignItems: 'flex-end',
+    paddingTop: 2,
+  },
+
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 2.5,
+  },
+
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    letterSpacing: 0.5,
+    marginTop: 3,
+  },
+
+  arabicContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingBottom: SCREEN_HEIGHT * 0.38,
+    paddingTop: 80,
+  },
+
+  arabicText: {
+    fontFamily: 'Uthmanic',
+    fontSize: 40,
+    lineHeight: 72,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    writingDirection: 'rtl',
+    textShadowColor: 'rgba(190, 140, 20, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 24,
+  },
+
+  prayerNameLabel: {
+    color: 'rgba(195, 155, 50, 0.85)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    marginTop: 28,
+  },
+
+  bottomPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 56,
+    paddingHorizontal: 24,
+  },
+
+  sectionLabel: {
+    color: 'rgba(200, 158, 55, 0.9)',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2.5,
+    marginBottom: 8,
+  },
+
+  transliterationText: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 15,
+    fontStyle: 'italic',
+    lineHeight: 25,
+    marginBottom: 10,
+  },
+
+  translationText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 13,
+    lineHeight: 21,
+    marginBottom: 16,
+  },
+
+  repeatRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 14,
+  },
+
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+
+  dotActive: {
+    width: 18,
+    backgroundColor: 'rgba(200, 158, 55, 0.9)',
+  },
+
+  nextHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingBottom: 2,
+  },
+
+  nextHintText: {
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2.5,
+  },
+});

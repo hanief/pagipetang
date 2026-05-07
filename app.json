@@ -37,45 +37,7 @@
             "./assets/fonts/digitalkhatt.otf",
             "./assets/fonts/madina.otf",
             "./assets/fonts/uthmanic.otf"
-          ],
-          "android": {
-            "fonts": [
-              {
-                "fontFamily": "Arabic",
-                "fontDefinitions": [
-                  {
-                    "path": "./assets/fonts/digitalkhatt.otf",
-                    "weight": 700
-                  }
-                ]
-              },
-              {
-                "fontFamily": "Arabic",
-                "fontDefinitions": [
-                  {
-                    "path": "./assets/fonts/madina.otf",
-                    "weight": 700
-                  }
-                ]
-              },
-              {
-                "fontFamily": "Arabic",
-                "fontDefinitions": [
-                  {
-                    "path": "./assets/fonts/uthmanic.otf",
-                    "weight": 700
-                  }
-                ]
-              }
-            ]
-          },
-          "ios": {
-            "fonts": [
-              "./assets/fonts/digitalkhatt.otf",
-              "./assets/fonts/madina.otf",
-              "./assets/fonts/uthmanic.otf"
-            ]
-          }
+          ]
         }
       ]
     ],
